@@ -43,7 +43,7 @@ import nextflow.util.Duration
 @Slf4j
 class SraExplorer {
 
-    static public Map PARAMS = [apiKey:String, cache: Boolean, max: Integer]
+    static public Map PARAMS = [apiKey:String, cache: Boolean, max: Integer, fields: [String, List]]
 
     @ToString
     static class SearchRecord {
@@ -69,6 +69,7 @@ class SraExplorer {
 
     String apiKey
     boolean useCache = true
+    List<String> queryFields
 
     SraExplorer() {
 
@@ -91,6 +92,8 @@ class SraExplorer {
             useCache = opts.cache as boolean
         if( opts.max )
             maxResults = opts.max as int
+        if( opts.fields )
+            queryFields = getFields(opts.fields)
     }
 
     DataflowWriteChannel apply() {
@@ -100,7 +103,7 @@ class SraExplorer {
         if( !apiKey )
             apiKey = getConfigApiKey()
 
-        query0(query)
+        query0(query, queryFields)
 
         if( missing )
             log.warn "Failed to retrieve fastq download URL for accessions: ${missing.join(',')}"
@@ -129,7 +132,7 @@ class SraExplorer {
         return result
     }
 
-    protected void query0( query ) {
+    protected void query0( query, List<String> queryFields ) {
         if( query instanceof List ) {
             for( def item in query ) {
                 query0(item)
@@ -138,14 +141,14 @@ class SraExplorer {
         }
 
         if( query instanceof String || query instanceof GString ) {
-            query1(query.toString())
+            query1(query.toString(), queryFields)
             return
         }
 
         throw new IllegalArgumentException("Not a valid query argument: $query [${query?.getClass()?.getName()}]")
     }
 
-    protected void query1(String query) {
+    protected void query1(String query, List<String> queryFields) {
 
         def url = getSearchUrl(query)
         def result = makeSearch(url)
@@ -154,7 +157,7 @@ class SraExplorer {
         while( index < result.count && emitCount<maxResults ) {
             url = getFetchUrl(result.querykey, result.webenv, index, entriesPerChunk)
             def data = makeDataRequest(url)
-            parseDataResponse(data)
+            parseDataResponse(data, queryFields)
             index += entriesPerChunk
         }
 
@@ -190,20 +193,37 @@ class SraExplorer {
         }
     }
 
-    protected void parseDataResponse( Map response ) {
+    protected void parseDataResponse( Map response,  List<String> queryFields ) {
         def ids = response.result.uids
-
         for( def key : ids ) {
             def runs = parseXml(response.result[key]?.runs)
+
             for( def run : runs ) {
                 final acc = run['@acc']?.toString()
-                final files = getFastqUrl(acc)
-                if( acc && files ) {
-                    target.bind( [acc, files] )
+                if( !queryFields ) {
+                    final files = getFastqUrl(acc, queryFields)
+                    if (acc && files) {
+                        target.bind([acc, files])
+                    }
+                    if (++emitCount >= maxResults)
+                        return
                 }
-                if( ++emitCount>= maxResults )
-                    return
+                else {
+                    final filesFields = getFastqUrlFields(acc, queryFields)
+                    if (acc && filesFields) {
+                        def result = new ArrayList(filesFields.size()+2)
+                        result.add(acc)
+                        result.add(filesFields['fastq_ftp'])
+                        for(def field : queryFields) {
+                            result.add(filesFields[field])
+                        }
+                        target.bind(result)
+                    }
+                    if (++emitCount >= maxResults)
+                        return
+                }
             }
+
         }
     }
 
@@ -234,18 +254,22 @@ class SraExplorer {
         getCacheFolder().resolve("$bucket/${acc}.fastq_ftp.cache")
     }
 
-    protected String readRunFastqs(String acc) {
+    protected String readRunFastqs(String acc, List<String> queryFields) {
         final Path cache = cachePath(acc)
         if( useCache ) try {
             def delta = System.currentTimeMillis() - FilesEx.lastModified(cache)
-            if( delta < CACHE_MAX_TIME.millis )
-                return cache.getText()
+            if( delta < CACHE_MAX_TIME.millis ) {
+                def text = cache.getText()
+                def cached = matchCache(text, queryFields)
+                if (cached)
+                    return text
+            }
         }
         catch( NoSuchFileException e ) {
             // ok ignore it and download it from EBI
         }
 
-        final result = readRunUrl(acc)
+        final result = readRunUrl(acc, queryFields)
         if( useCache && result ) {
             // store in the cache
             cache.parent.createDirIfNotExists()
@@ -254,10 +278,37 @@ class SraExplorer {
         return result
     }
 
-    protected String readRunUrl(String acc) {
-        final url = "https://www.ebi.ac.uk/ena/data/warehouse/filereport?result=read_run&fields=fastq_ftp&accession=$acc"
-        log.debug "SRA fetch ftp fastq url=$url"
-        String result = new URL(url).text.trim()
+    protected boolean matchCache (String text,  List<String> queryFields) {
+        def cached_fields = text.trim().readLines()[0].tokenize('\t')
+
+        if (cached_fields.size() == 1)
+            if (!queryFields)
+                return true
+            return false
+
+        // Order matters, could be further develop to check for the fields and return its value
+        // another option will be to directly keep the csv file returned by the url
+        if (cached_fields[1..-1] == queryFields)
+            return true
+
+        return false
+    }
+
+    protected String readRunUrl(String acc, List<String> queryFields) {
+        def url = "https://www.ebi.ac.uk/ena/data/warehouse/filereport?result=read_run&fields=fastq_ftp"
+
+        if( queryFields != null ) {
+            for (def field in queryFields) {
+                url += ",$field"
+            }
+        }
+
+        url += "&accession=$acc"
+
+        String text = new URL(url).text
+        String result = text.replaceAll("\t\n","\tempty").replaceAll("\t\t","\tempty\t").trim()
+
+        // String result = new URL(url).text.trim()
         log.trace "SRA fetch ftp fastq url result:\n${result?.indent()}"
 
         if( result.indexOf('\n')==-1 ) {
@@ -269,8 +320,8 @@ class SraExplorer {
         return result
     }
 
-    protected getFastqUrl(String acc) {
-        def text = readRunFastqs(acc)
+    protected getFastqUrl(String acc, List<String> queryFields) {
+        def text = readRunFastqs(acc, queryFields)
         if( !text )
             return
 
@@ -284,6 +335,13 @@ class SraExplorer {
         return result.size()==1 ? result[0] : result
     }
 
+    protected getFastqUrlFields(String acc, List<String> queryFields) {
+        def text = readRunFastqs(acc, queryFields)
+        if( !text )
+            return
+
+        return parseCsv(text)
+    }
 
     protected parseXml(String str) {
         if( !str )
@@ -291,6 +349,27 @@ class SraExplorer {
 
         def xml = str.trim().replaceAll('&lt;','<').replaceAll('&gt;','>')
         xmlParser.parseText("<document>$xml</document>")
+    }
+
+    protected parseCsv (String text) {
+        if (!text)
+            return null
+
+        def parsedCsv = [:]
+        def lines = text.trim().readLines()
+        def header = lines[0].tokenize('\t')
+        // def content =  lines[1].tokenize('\t')
+        String[] content = lines[1].split(/\t/)
+
+        header.eachWithIndex { key, index ->
+            def values = content[index].tokenize(';')
+            if ( key == 'fastq_ftp') {
+                values = values.each { str -> FileHelper.asPath("ftp://$str") }
+            }
+            parsedCsv[key] =  values.size()==1 ? values[0] == "empty"  ? null : values[0]: values
+        }
+
+        return parsedCsv
     }
 
     /**
@@ -306,6 +385,12 @@ class SraExplorer {
             url += "&api_key=$apiKey"
 
         return url
+    }
+
+    protected List<String> getFields( value ) {
+        if( !value ) return Collections.emptyList()
+        return value instanceof List ? value : value.toString().replaceAll("\\s", "").tokenize(',')
+
     }
 
 }

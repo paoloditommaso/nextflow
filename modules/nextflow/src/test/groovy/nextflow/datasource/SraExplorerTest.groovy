@@ -113,6 +113,25 @@ class SraExplorerTest extends Specification {
 
     }
 
+    def 'should parse exp csv' () {
+
+/*
+       study_accession	secondary_study_accession	sample_accession	secondary_sample_accession	experiment_accession	run_accession	submission_accession	tax_id	scientific_name	instrument_platform	instrument_model	library_name	nominal_length	library_layout	library_strategy	library_source	library_selection	read_count	base_count	center_name	first_public	last_updated	experiment_title	study_title	study_alias	experiment_alias	run_alias	fastq_bytes	fastq_md5	fastq_ftp	fastq_aspera	fastq_galaxy	submitted_bytes	submitted_md5	submitted_ftp	submitted_aspera	submitted_galaxy	submitted_format	sra_bytes	sra_md5	sra_ftp	sra_aspera	sra_galaxy	cram_index_ftp	cram_index_aspera	cram_index_galaxy	sample_alias	broker_name	sample_title	nominal_sdev	first_created
+       PRJNA30709	SRP007461	SAMN00634070	SRS214591	SRX082565	SRR307897	SRA039973	9606	Homo sapiens	ILLUMINA	Illumina Genome Analyzer II	GSM758559: CshlLong_RnaSeq_GM12878_cell_longPolyA		PAIRED	RNA-Seq	TRANSCRIPTOMIC	cDNA	32214376	4896585152	GEO	2011-07-28	2015-06-19	Illumina Genome Analyzer II sequencing; GSM758559: CshlLong_RnaSeq_GM12878_cell_longPolyA	GSE30567: Long RNA-seq from ENCODE/Cold Spring Harbor Lab	GSE30567	GSM758559: lab_RnaSeq_GM12878_cell_longPolyA	GSM758559_1	2392496788;2436856506	cdeb9d2450ca0bfc678968ac33f551a6;a1e9011d47d5b0462b9d50402a92dc6d	ftp.sra.ebi.ac.uk/vol1/fastq/SRR307/SRR307897/SRR307897_1.fastq.gz;ftp.sra.ebi.ac.uk/vol1/fastq/SRR307/SRR307897/SRR307897_2.fastq.gz	fasp.sra.ebi.ac.uk:/vol1/fastq/SRR307/SRR307897/SRR307897_1.fastq.gz;fasp.sra.ebi.ac.uk:/vol1/fastq/SRR307/SRR307897/SRR307897_2.fastq.gz	ftp.sra.ebi.ac.uk/vol1/fastq/SRR307/SRR307897/SRR307897_1.fastq.gz;ftp.sra.ebi.ac.uk/vol1/fastq/SRR307/SRR307897/SRR307897_2.fastq.gz							3499798854	2ee356e58e9765d6b26bde4b119b99be	ftp.sra.ebi.ac.uk/vol1/srr/SRR307/SRR307897	fasp.sra.ebi.ac.uk:/vol1/srr/SRR307/SRR307897	ftp.sra.ebi.ac.uk/vol1/srr/SRR307/SRR307897				GSM758559		CSHL_RnaSeq_GM12878_cell_longPolyA (superseded by GSE86658)		2011-07-28
+
+ */
+
+        given:
+        def slurper = new SraExplorer()
+        def exp = "study_accession\tsecondary_study_accession\tsample_accession\tsecondary_sample_accession\texperiment_accession\trun_accession\tsubmission_accession\ttax_id\tscientific_name\tinstrument_platform\tinstrument_model\tlibrary_name\tnominal_length\tlibrary_layout\tlibrary_strategy\tlibrary_source\tlibrary_selection\tread_count\tbase_count\tcenter_name\tfirst_public\tlast_updated\texperiment_title\tstudy_title\tstudy_alias\texperiment_alias\trun_alias\tfastq_bytes\tfastq_md5\tfastq_ftp\tfastq_aspera\tfastq_galaxy\tsubmitted_bytes\tsubmitted_md5\tsubmitted_ftp\tsubmitted_aspera\tsubmitted_galaxy\tsubmitted_format\tsra_bytes\tsra_md5\tsra_ftp\tsra_aspera\tsra_galaxy\tcram_index_ftp\tcram_index_aspera\tcram_index_galaxy\tsample_alias\tbroker_name\tsample_title\tnominal_sdev\tfirst_created\n" +
+                "PRJNA30709\tSRP007461\tSAMN00634070\tSRS214591\tSRX082565\tSRR307897\tSRA039973\t9606\tHomo sapiens\tILLUMINA\tIllumina Genome Analyzer II\tGSM758559: CshlLong_RnaSeq_GM12878_cell_longPolyA\t\tPAIRED\tRNA-Seq\tTRANSCRIPTOMIC\tcDNA\t32214376\t4896585152\tGEO\t2011-07-28\t2015-06-19\tIllumina Genome Analyzer II sequencing; GSM758559: CshlLong_RnaSeq_GM12878_cell_longPolyA\tGSE30567: Long RNA-seq from ENCODE/Cold Spring Harbor Lab\tGSE30567\tGSM758559: lab_RnaSeq_GM12878_cell_longPolyA\tGSM758559_1\t2392496788;2436856506\tcdeb9d2450ca0bfc678968ac33f551a6;a1e9011d47d5b0462b9d50402a92dc6d\tftp.sra.ebi.ac.uk/vol1/fastq/SRR307/SRR307897/SRR307897_1.fastq.gz;ftp.sra.ebi.ac.uk/vol1/fastq/SRR307/SRR307897/SRR307897_2.fastq.gz\tfasp.sra.ebi.ac.uk:/vol1/fastq/SRR307/SRR307897/SRR307897_1.fastq.gz;fasp.sra.ebi.ac.uk:/vol1/fastq/SRR307/SRR307897/SRR307897_2.fastq.gz\tftp.sra.ebi.ac.uk/vol1/fastq/SRR307/SRR307897/SRR307897_1.fastq.gz;ftp.sra.ebi.ac.uk/vol1/fastq/SRR307/SRR307897/SRR307897_2.fastq.gz\t\t\t\t\t\t\t3499798854\t2ee356e58e9765d6b26bde4b119b99be\tftp.sra.ebi.ac.uk/vol1/srr/SRR307/SRR307897\tfasp.sra.ebi.ac.uk:/vol1/srr/SRR307/SRR307897\tftp.sra.ebi.ac.uk/vol1/srr/SRR307/SRR307897\t\t\t\tGSM758559\t\tCSHL_RnaSeq_GM12878_cell_longPolyA (superseded by GSE86658)\t\t2011-07-28\n"
+
+        when:
+        def result = slurper.parseCsv(exp)
+        then:
+        result['study_accession'] == 'PRJNA30709'
+        result['first_created'] == '2011-07-28'
+    }
 
     def 'should return ftp files for accession id' () {
         given:
@@ -128,41 +147,61 @@ class SraExplorerTest extends Specification {
 
 
         def slurper = Spy(SraExplorer)
+        def SRAfields = null
         def f0 = 'ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR144/004/SRR1448774/SRR1448774.fastq.gz' as Path
         def f1 = "ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR908/ERR908503/ERR908503_1.fastq.gz" as Path
         def f2= "ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR908/ERR908503/ERR908503_2.fastq.gz" as Path
 
         when:
-        def result = slurper.getFastqUrl('SRR1448774')
+        def result = slurper.getFastqUrl('SRR1448774', SRAfields)
         then:
-        1 * slurper.readRunFastqs('SRR1448774') >> RESP1
+        1 * slurper.readRunFastqs('SRR1448774', SRAfields) >> RESP1
         result == f0
 
         when:
-        result = slurper.getFastqUrl('ERR908503')
+        result = slurper.getFastqUrl('ERR908503', SRAfields)
         then:
-        1 * slurper.readRunFastqs('ERR908503') >> RESP2
+        1 * slurper.readRunFastqs('ERR908503', SRAfields) >> RESP2
         result == [f1, f2]
+    }
+
+    def 'should return ftp files for accession id plus queried fields' () {
+        given:
+        def slurper = new SraExplorer()
+        def id = 'ERR908503'
+
+        expect:
+        slurper.getFastqUrlFields(id,[FIELD]) == EXPECTED
+
+        where:
+        FIELD                         | EXPECTED
+        'study_accession'             | [fastq_ftp:['ftp.sra.ebi.ac.uk/vol1/fastq/ERR908/ERR908503/ERR908503_1.fastq.gz', 'ftp.sra.ebi.ac.uk/vol1/fastq/ERR908/ERR908503/ERR908503_2.fastq.gz'], study_accession:'PRJEB8073']
+        'submitted_md5'               | [fastq_ftp:['ftp.sra.ebi.ac.uk/vol1/fastq/ERR908/ERR908503/ERR908503_1.fastq.gz', 'ftp.sra.ebi.ac.uk/vol1/fastq/ERR908/ERR908503/ERR908503_2.fastq.gz'], submitted_md5:['fcba9a06c3dd459bdd61d0c2f61fa39f', 'a5ac089eb6d5181254315ac1d9534d69']]
+        'fastq_aspera'                | [fastq_ftp:['ftp.sra.ebi.ac.uk/vol1/fastq/ERR908/ERR908503/ERR908503_1.fastq.gz', 'ftp.sra.ebi.ac.uk/vol1/fastq/ERR908/ERR908503/ERR908503_2.fastq.gz'], fastq_aspera:['fasp.sra.ebi.ac.uk:/vol1/fastq/ERR908/ERR908503/ERR908503_1.fastq.gz', 'fasp.sra.ebi.ac.uk:/vol1/fastq/ERR908/ERR908503/ERR908503_2.fastq.gz']]
+        'submitted_format'            | [fastq_ftp:['ftp.sra.ebi.ac.uk/vol1/fastq/ERR908/ERR908503/ERR908503_1.fastq.gz', 'ftp.sra.ebi.ac.uk/vol1/fastq/ERR908/ERR908503/ERR908503_2.fastq.gz'], submitted_format:['FASTQ', 'FASTQ']]
+        'first_created'               | [fastq_ftp:['ftp.sra.ebi.ac.uk/vol1/fastq/ERR908/ERR908503/ERR908503_1.fastq.gz', 'ftp.sra.ebi.ac.uk/vol1/fastq/ERR908/ERR908503/ERR908503_2.fastq.gz'], first_created:'2015-06-08']
+        'submitted_md5,first_created' | [fastq_ftp:['ftp.sra.ebi.ac.uk/vol1/fastq/ERR908/ERR908503/ERR908503_1.fastq.gz', 'ftp.sra.ebi.ac.uk/vol1/fastq/ERR908/ERR908503/ERR908503_2.fastq.gz'], submitted_md5:['fcba9a06c3dd459bdd61d0c2f61fa39f', 'a5ac089eb6d5181254315ac1d9534d69'], first_created:'2015-06-08']
     }
 
     def 'should cache fastq_ftp' () {
         given:
         def CACHE_CONTENT = 'Hello'
+        def SRAfields = null
         def folder = Files.createTempDirectory('test')
         def cache = folder.resolve('dir1/cache.txt')
         def slurper = Spy(SraExplorer)
 
         when:
-        def result = slurper.readRunFastqs('ERR908503')
+        def result = slurper.readRunFastqs('ERR908503', SRAfields)
         then:
         1 * slurper.cachePath("ERR908503") >> cache
-        1 * slurper.readRunUrl("ERR908503") >> CACHE_CONTENT
+        1 * slurper.readRunUrl("ERR908503", SRAfields) >> CACHE_CONTENT
         result == CACHE_CONTENT
         cache.text == CACHE_CONTENT
 
         // should HIT the cache
         when:
-        result = slurper.readRunFastqs('ERR908503')
+        result = slurper.readRunFastqs('ERR908503', SRAfields)
         then:
         1 * slurper.cachePath("ERR908503") >> cache
         0 * slurper.readRunUrl(_) >> null
@@ -200,5 +239,23 @@ class SraExplorerTest extends Specification {
         1 * slurper.getEnv() >> [NCBI_API_KEY: '1bc']
         then:
         result == '1bc'
+    }
+
+    def 'should return SRA fields from a string' () {
+        given:
+        def slurper = new SraExplorer()
+
+        expect:
+        slurper.getFields(FIELDS) == EXPECTED
+
+        where:
+        FIELDS    | EXPECTED
+        'a'       | ['a']
+        'a,b'     | ['a','b']
+        'a, b'    | ['a','b']
+        ['a']     | ['a']
+        ['a','b'] | ['a','b']
+
+
     }
 }
