@@ -17,6 +17,10 @@
 
 package nextflow.script
 
+
+import nextflow.script.testflow.TestSuite
+import nextflow.script.testflow.XmlRenderer
+
 import java.nio.file.Path
 
 import com.google.common.hash.Hashing
@@ -58,6 +62,8 @@ class ScriptParser {
     private BaseScript script
 
     private Object result
+
+    private TestSuite testSuite
 
     private ScriptBinding binding
 
@@ -109,6 +115,8 @@ class ScriptParser {
     ScriptBinding getBinding() { binding }
 
     Object getResult() { result }
+
+    TestSuite getTestSuite() { testSuite }
 
     BaseScript getScript() { script }
 
@@ -231,7 +239,15 @@ class ScriptParser {
     }
 
     ScriptParser checkTests() {
-        script.checkTests()
+
+        // Run tests
+        testSuite = script.checkTests()
+        testSuite.workDir = session.workDir
+
+        // Write XML results
+        final testDir = session.testResults ?: session.workDir.resolve("test-results")
+        XmlRenderer.write(testSuite, testDir)
+
         return this
     }
 

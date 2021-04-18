@@ -116,7 +116,7 @@ class TestflowDsl {
             }
             //
             if( !terminated ) {
-                result << new EmissionValues(values, named)
+                result << new EmissionValues(values, named, this)
             }
             if( single ) {
                 // if channel are all dataflow variables stop at the first iteration
@@ -162,12 +162,20 @@ class TestflowDsl {
             final meta = tasksMetaList.get(index)
             final values = emissions.get(index)
             final ctx = new TaskDsl( values, meta )
-            invoke(body, ctx)
+            try {
+                invoke(body, ctx)
+            } catch(AssertionError e) {
+                throw new TaskAssertionError(message: e.message,  context: ctx)
+            }
         }
         else {
             final values = emissions.get(index)
             final ctx = new WorkflowDsl( values )
-            invoke(body, ctx)
+            try {
+                invoke(body, ctx)
+            } catch(AssertionError e) {
+                throw new WorkflowAssertionError(message: e.message, context: ctx)
+            }
         }
     }
 
@@ -177,6 +185,8 @@ class TestflowDsl {
         copy.setResolveStrategy(Closure.DELEGATE_FIRST)
         copy.call()
     }
+
+    String toString() { return "$type:$name" }
 
 
     @TupleConstructor(includeFields = true)
@@ -192,11 +202,11 @@ class TestflowDsl {
         def read() { channel.getVal() }
     }
 
-    @ToString(includeNames = true, includePackage = false, includeFields = true)
     @TupleConstructor(includeFields = true)
     static class EmissionValues {
         private List values
         private Map<String,Object> named
+        private TestflowDsl parent
 
         int size() { return values.size() }
         int getLength() { values.size() }
@@ -208,6 +218,8 @@ class TestflowDsl {
                 ? named.get(name)
                 : metaClass.getProperty(this,name)
         }
+
+        String toString() { return "${parent.type}:${parent.name}" }
     }
 
     @Canonical
@@ -222,8 +234,22 @@ class TestflowDsl {
     }
 
     @Canonical
+    static class TaskAssertionError extends AssertionError {
+        String message
+        TaskDsl context
+    }
+
+    @Canonical
     @ToString(includeNames = true, includePackage = false)
     static class WorkflowDsl {
         EmissionValues out
     }
+
+    @Canonical
+    static class WorkflowAssertionError extends AssertionError {
+        String message
+        WorkflowDsl context
+    }
+
+
 }

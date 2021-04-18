@@ -245,6 +245,10 @@ class Session implements ISession {
 
     FilePorter getFilePorter() { filePorter }
 
+    String testName
+
+    Path testResults
+
     /**
      * Creates a new session with an 'empty' (default) configuration
      */
