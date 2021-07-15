@@ -76,6 +76,8 @@ class PodSpecBuilder {
 
     Collection<PodVolumeClaim> volumeClaims = []
 
+    Collection<PodEmptyDir> emptyDirs = []
+
     PodSecurityContext securityContext
 
     PodNodeSelector nodeSelector
@@ -220,6 +222,16 @@ class PodSpecBuilder {
         return this
     }
 
+    PodSpecBuilder withEmptyDir(PodEmptyDir emptyDir) {
+        this.emptyDirs.add(emptyDir)
+        return this
+    }
+
+    PodSpecBuilder withEmptyDirs(Collection<PodEmptyDir> emptyDirs) {
+        this.emptyDirs.addAll(emptyDirs)
+        return this
+    }
+
     PodSpecBuilder withPodOptions(PodOptions opts) {
         // -- pull policy
         if( opts.imagePullPolicy )
@@ -249,6 +261,11 @@ class PodSpecBuilder {
         if( opts.annotations ) {
             annotations.putAll( opts.annotations )
         }
+        // - empty dirs
+        if(opts.emptyDirs) {
+            emptyDirs.addAll(opts.emptyDirs)
+        }
+
         // -- security context
         if( opts.securityContext )
             securityContext = opts.securityContext
@@ -381,6 +398,20 @@ class PodSpecBuilder {
             final name = nextVolName()
             mounts << [name: name, mountPath: entry.mountPath]
             volumes << [name: name, hostPath: [path: entry.hostPath]]
+        }
+
+        // empty Dirs
+        for( PodEmptyDir entry: emptyDirs) {
+            final emptyDir = [:]
+            if(entry.type == PodEmptyDir.PodEmptyDirType.Memory) {
+                emptyDir.medium = 'Memory'
+            }
+            if(entry.sizeLimit) {
+                emptyDir.sizeLimit = "${entry.sizeLimit.mega}Mi".toString()
+            }
+            mounts << [name: entry.name, mountPath: entry.mountPath]
+
+            volumes << [name: entry.name, emptyDir: emptyDir]
         }
 
         // secret volumes
